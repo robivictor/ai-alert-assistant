@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-dba-assistant"
+version = "1.0.0"
+description = "AI-powered database administrator assistant with Confluence integration"
+requires-python = ">=3.11"
+
+dependencies = [
+    "strands-agents>=1.5.0",
+    "strands-agents[ollama]>=1.5.0",
+    "strands-agents[openai]>=1.5.0",
+    "mcp>=1.13.0",
+    "mcp-atlassian>=0.11.9",
+    "python-dotenv>=1.0.0",
+    "termcolor>=3.0.0",
+]
+
+[project.scripts]
+ai-dba = "src.main:cli"
+
+[tool.setuptools.packages.find]
+where = ["src"]

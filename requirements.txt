@@ -1,0 +1,11 @@
+# AI DBA Assistant - Production Dependencies
+# Core AI framework
+strands-agents[ollama,openai]==1.5.0
+
+# MCP Protocol and Atlassian integration
+mcp==1.13.1
+mcp-atlassian
+
+# Core utilities
+python-dotenv==1.0.1
+termcolor==3.1.0
