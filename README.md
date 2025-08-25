@@ -1,6 +1,6 @@
-# AI DBA Assistant
+# AI Alert Assistant
 
-A modern, Python-based AI assistant for database administrators that analyzes alarms and provides intelligent responses based on Confluence documentation.
+A modern, Python-based AI assistant that analyzes system alerts and provides intelligent responses based on Confluence documentation.
 
 ## Quick Start
 
@@ -32,7 +32,7 @@ OPENAI_MODEL=gpt-4
 # Atlassian Configuration
 CONFLUENCE_URL=https://your-domain.atlassian.net
 
-# Application Configuration  
+# Application Configuration
 LOG_LEVEL=INFO
 ```
 
@@ -40,10 +40,10 @@ LOG_LEVEL=INFO
 
 ```bash
 # Interactive mode
-ai-dba
+ai-alert
 
-# Batch mode with specific alarm
-ai-dba "Database CPU usage is at 95% on production server"
+# Batch mode with specific alert
+ai-alert "High CPU usage detected on production server"
 
 # Alternative: run directly without installing
 python -m src.main
@@ -51,10 +51,11 @@ python -m src.main
 
 ## Features
 
-- 🤖 **AI-Powered Analysis**: Uses Strands agents with OpenAI/Ollama models
-- 📚 **Confluence Integration**: MCP-based integration with Atlassian Confluence
-- 🔍 **Smart Alarm Classification**: Automatic event ID mapping and pattern recognition
-- 📋 **Structured Troubleshooting**: Step-by-step guidance based on documentation
+- **AI-Powered Analysis**: Uses Strands agents with OpenAI/Ollama models
+- **Confluence Integration**: MCP-based integration with Atlassian Confluence
+- **Smart Alert Classification**: Automatic event ID mapping and pattern recognition for system alerts
+- **Multi-System Support**: Handles alerts from applications, networks, storage, authentication, and more
+- **Structured Troubleshooting**: Step-by-step guidance based on documentation
 
 ## Project Structure
 
@@ -71,17 +72,30 @@ atlassian-agent/
 └── README.md               # This file
 ```
 
+## Alert Classification System
+
+The system automatically classifies alerts into categories:
+
+- **SYS-001**: High CPU Usage
+- **SYS-002**: Memory Pressure Critical
+- **NET-001**: Connection Limit Reached
+- **NET-002**: Network/Timeout Issues
+- **STO-001**: Disk Space Low
+- **APP-001**: Service/Application Down
+- **AUTH-001**: Authentication Issues
+- **ALERT-UNKNOWN**: Unclassified alerts
+
 ## Command Line Options
 
 ```bash
-ai-dba --help
+ai-alert --help
 
-usage: ai-dba [-h] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [alarm]
+usage: ai-alert [-h] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [alert]
 
-AI DBA Assistant - Database Alarm Analysis
+AI Alert Assistant - System Alert Analysis
 
 positional arguments:
-  alarm                 Alarm message to analyze (if not provided, starts interactive mode)
+  alert                 Alert message to analyze (if not provided, starts interactive mode)
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -95,25 +109,6 @@ optional arguments:
 
 ```bash
 pip install -r requirements-dev.txt
-```
-
-### Running Tests
-
-```bash
-pytest
-```
-
-### Code Formatting
-
-```bash
-black src/ tests/
-isort src/ tests/
-```
-
-### Type Checking
-
-```bash
-mypy src/
 ```
 
 ## Configuration

@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "ai-dba-assistant"
+name = "ai-alert-assistant"
 version = "1.0.0"
-description = "AI-powered database administrator assistant with Confluence integration"
+description = "AI-powered alert analysis assistant with Confluence integration"
 requires-python = ">=3.11"
 
 dependencies = [
@@ -19,7 +19,10 @@ dependencies = [
 ]
 
 [project.scripts]
-ai-dba = "src.main:cli"
+ai-alert = "main:cli"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"

@@ -1,5 +1,5 @@
 """
-Main entry point for the AI DBA Assistant.
+Main entry point for the AI Alert Assistant.
 """
 
 import asyncio
@@ -9,10 +9,10 @@ from typing import Optional
 
 from dotenv import load_dotenv
 
-from .agents.analysis import DatabaseAnalysisAgent
-from .tools.mcp_client import AtlassianMCPClient
-from .utilities.logger import get_logger, log_error, log_success, styled_log
-from .utilities.strands_model import get_model_info
+from agents.analysis import AlertAnalysisAgent
+from tools.mcp_client import AtlassianMCPClient
+from utilities.logger import get_logger, log_error, log_success, styled_log
+from utilities.strands_model import get_model_info
 
 # Load environment variables
 load_dotenv()
@@ -20,8 +20,8 @@ load_dotenv()
 logger = get_logger(__name__)
 
 
-class AIDBAAssistant:
-    """Main application class for the AI DBA Assistant."""
+class AIAlertAssistant:
+    """Main application class for the AI Alert Assistant."""
 
     def __init__(self):
         self.atlassian_client = None
@@ -36,9 +36,9 @@ class AIDBAAssistant:
             self.atlassian_client = AtlassianMCPClient(confluence_url)
 
             # Initialize analysis agent
-            self.analysis_agent = DatabaseAnalysisAgent(self.atlassian_client)
+            self.analysis_agent = AlertAnalysisAgent(self.atlassian_client)
 
-            logger.info("AI DBA Assistant initialized successfully")
+            logger.info("AI Alert Assistant initialized successfully")
 
         except Exception as e:
             log_error(f"Failed to initialize application: {e}")
@@ -63,12 +63,12 @@ class AIDBAAssistant:
             log_error(f"Authentication error: {e}")
             return False
 
-    async def analyze_alarm(self, alarm_message: str) -> dict:
+    async def analyze_alert(self, alert_message: str) -> dict:
         """
-        Analyze a database alarm message.
+        Analyze a system alert message.
 
         Args:
-            alarm_message: The alarm message to analyze
+            alert_message: The alert message to analyze
 
         Returns:
             dict: Analysis results and recommendations
@@ -77,11 +77,11 @@ class AIDBAAssistant:
             log_error("Analysis agent not initialized")
             return {"error": "Analysis agent not available", "status": "error"}
 
-        return await self.analysis_agent.analyze_alarm(alarm_message)
+        return await self.analysis_agent.analyze_alert(alert_message)
 
     async def interactive_mode(self) -> None:
         """Run the application in interactive mode."""
-        styled_log("🤖 AI DBA ASSISTANT", "Interactive mode started", "green")
+        styled_log("🤖 AI ALERT ASSISTANT", "Interactive mode started", "green")
 
         # Show model information
         model_info = get_model_info()
@@ -96,27 +96,27 @@ class AIDBAAssistant:
             log_error("Authentication required to continue")
             return
 
-        styled_log("📚 READY", "AI DBA Assistant is ready to analyze alarms", "green")
+        styled_log("📚 READY", "AI Alert Assistant is ready to analyze alerts", "green")
 
         while True:
             try:
                 # Get user input
                 print()  # Add some spacing
-                alarm_message = input(
-                    "What is the alarm message you want to analyze? (or 'quit' to exit): "
+                alert_message = input(
+                    "What is the alert message you want to analyze? (or 'quit' to exit): "
                 ).strip()
 
-                if alarm_message.lower() in ["quit", "exit", "q"]:
-                    styled_log("👋 GOODBYE", "AI DBA Assistant session ended", "yellow")
+                if alert_message.lower() in ["quit", "exit", "q"]:
+                    styled_log("👋 GOODBYE", "AI Alert Assistant session ended", "yellow")
                     break
 
-                if not alarm_message:
-                    print("Please enter an alarm message.")
+                if not alert_message:
+                    print("Please enter an alert message.")
                     continue
 
-                # Analyze the alarm
-                styled_log("🔍 ANALYZING", "Processing alarm message...", "cyan")
-                result = await self.analyze_alarm(alarm_message)
+                # Analyze the alert
+                styled_log("🔍 ANALYZING", "Processing alert message...", "cyan")
+                result = await self.analyze_alert(alert_message)
 
                 if result["status"] == "success":
                     print()  # Add spacing
@@ -128,20 +128,20 @@ class AIDBAAssistant:
                     )
 
             except KeyboardInterrupt:
-                styled_log("👋 GOODBYE", "AI DBA Assistant session ended", "yellow")
+                styled_log("👋 GOODBYE", "AI Alert Assistant session ended", "yellow")
                 break
             except Exception as e:
                 log_error(f"Error in interactive mode: {e}")
                 continue
 
-    async def batch_mode(self, alarm_message: str) -> None:
+    async def batch_mode(self, alert_message: str) -> None:
         """
-        Run the application in batch mode with a single alarm.
+        Run the application in batch mode with a single alert.
 
         Args:
-            alarm_message: The alarm message to analyze
+            alert_message: The alert message to analyze
         """
-        styled_log("🤖 AI DBA ASSISTANT", "Batch mode started", "green")
+        styled_log("🤖 AI ALERT ASSISTANT", "Batch mode started", "green")
 
         # Show model information
         model_info = get_model_info()
@@ -156,9 +156,9 @@ class AIDBAAssistant:
             log_error("Authentication required to continue")
             return
 
-        # Analyze the alarm
-        styled_log("🔍 ANALYZING", f"Processing: {alarm_message}", "cyan")
-        result = await self.analyze_alarm(alarm_message)
+        # Analyze the alert
+        styled_log("🔍 ANALYZING", f"Processing: {alert_message}", "cyan")
+        result = await self.analyze_alert(alert_message)
 
         if result["status"] == "success":
             print()
@@ -168,23 +168,23 @@ class AIDBAAssistant:
             log_error(f"Analysis failed: {result.get('error', 'Unknown error')}")
 
 
-async def main(alarm_message: Optional[str] = None) -> None:
+async def main(alert_message: Optional[str] = None) -> None:
     """
     Main application entry point.
 
     Args:
-        alarm_message: Optional alarm message for batch mode
+        alert_message: Optional alert message for batch mode
     """
     try:
         # Clear terminal
         os.system("clear" if os.name == "posix" else "cls")
 
         # Create application instance
-        app = AIDBAAssistant()
+        app = AIAlertAssistant()
 
         # Run in appropriate mode
-        if alarm_message:
-            await app.batch_mode(alarm_message)
+        if alert_message:
+            await app.batch_mode(alert_message)
         else:
             await app.interactive_mode()
 
@@ -198,12 +198,12 @@ def cli() -> None:
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="AI DBA Assistant - Database Alarm Analysis"
+        description="AI Alert Assistant - System Alert Analysis"
     )
     parser.add_argument(
-        "alarm",
+        "alert",
         nargs="?",
-        help="Alarm message to analyze (if not provided, starts interactive mode)",
+        help="Alert message to analyze (if not provided, starts interactive mode)",
     )
     parser.add_argument(
         "--log-level",
@@ -215,12 +215,12 @@ def cli() -> None:
     args = parser.parse_args()
 
     # Set up logging with specified level
-    from .utilities.logger import setup_logging
+    from utilities.logger import setup_logging
 
     setup_logging(args.log_level)
 
     # Run the application
-    asyncio.run(main(args.alarm))
+    asyncio.run(main(args.alert))
 
 
 if __name__ == "__main__":

@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional
 from mcp import StdioServerParameters, Tool
 from mcp.client.stdio import stdio_client
 
-from ..utilities.logger import get_logger
+from utilities.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -25,6 +25,8 @@ class AtlassianMCPClient:
         self._client = None
         self._available_tools: List[Tool] = []
         self._mcp_process = None
+        self._connection_cache = None
+        self._tools_cache_valid = False
 
     async def _start_mcp_server(self) -> subprocess.Popen:
         """Start the MCP Atlassian server subprocess."""
@@ -102,29 +104,37 @@ class AtlassianMCPClient:
             return False
 
     async def get_available_tools(self) -> List[Tool]:
-        """Get list of available MCP tools."""
-        if not self._available_tools:
+        """Get list of available MCP tools with improved error handling."""
+        if not self._available_tools or not self._tools_cache_valid:
             try:
                 server_params = self.create_server_params()
                 async with stdio_client(server_params) as (read, write):
                     await write.initialize()
                     tools_response = await write.list_tools()
                     self._available_tools = tools_response.tools
+                    self._tools_cache_valid = True
                     logger.info(f"Found {len(self._available_tools)} available tools")
             except Exception as e:
                 logger.error(f"Failed to list tools: {e}")
+                # Return empty list if tools can't be loaded
+                self._available_tools = []
+                self._tools_cache_valid = False
         return self._available_tools
 
     async def filter_tools(self, tool_names: List[str]) -> List[Tool]:
-        """Filter tools by name."""
-        all_tools = await self.get_available_tools()
-        filtered = [
-            tool
-            for tool in all_tools
-            if hasattr(tool, "name") and tool.name in tool_names
-        ]
-        logger.info(f"Filtered to {len(filtered)} tools: {tool_names}")
-        return filtered
+        """Filter tools by name with graceful handling."""
+        try:
+            all_tools = await self.get_available_tools()
+            filtered = [
+                tool
+                for tool in all_tools
+                if hasattr(tool, "name") and tool.name in tool_names
+            ]
+            logger.info(f"Filtered to {len(filtered)} tools: {tool_names}")
+            return filtered
+        except Exception as e:
+            logger.warning(f"Failed to filter tools: {e}")
+            return []
 
     async def get_confluence_tools(self) -> List[Tool]:
         """Get Confluence-specific MCP tools."""
@@ -156,7 +166,7 @@ class MCPToolManager:
         self.logger = get_logger(__name__)
 
     async def discover_confluence_resources(self) -> Dict[str, Any]:
-        """Discover available Confluence resources."""
+        """Discover available Confluence resources with graceful fallback."""
         try:
             tools = await self.atlassian.get_confluence_tools()
 
@@ -172,32 +182,45 @@ class MCPToolManager:
             )
 
             if resource_tool:
-                # Use MCP client to call the tool
-                server_params = self.atlassian.create_server_params()
-                async with stdio_client(server_params) as (read, write):
-                    await write.initialize()
-                    result = await write.call_tool(resource_tool.name, {})
-                    self.logger.info("Discovered Confluence resources")
+                try:
+                    # Use MCP client to call the tool
+                    server_params = self.atlassian.create_server_params()
+                    async with stdio_client(server_params) as (read, write):
+                        await write.initialize()
+                        result = await write.call_tool(resource_tool.name, {})
+                        self.logger.info("Discovered Confluence resources")
+                        return {
+                            "status": "success",
+                            "resources_available": True,
+                            "data": result.content,
+                        }
+                except Exception as resource_error:
+                    self.logger.warning(f"Resource discovery failed: {resource_error}")
                     return {
-                        "status": "success",
-                        "resources_available": True,
-                        "data": result.content,
+                        "status": "partial_success",
+                        "resources_available": False,
+                        "message": "Resource discovery unavailable",
                     }
             else:
-                self.logger.warning("getAccessibleAtlassianResources tool not found")
+                self.logger.info("Resource discovery tool not available")
                 return {
-                    "status": "error",
+                    "status": "partial_success",
+                    "resources_available": False,
                     "message": "Resource discovery tool not available",
                 }
 
         except Exception as e:
-            self.logger.error(f"Failed to discover resources: {e}")
-            return {"status": "error", "message": str(e)}
+            self.logger.warning(f"Failed to discover resources: {e}")
+            return {
+                "status": "partial_success", 
+                "resources_available": False, 
+                "message": "Resource discovery unavailable"
+            }
 
     async def search_confluence_content(
         self, query: str, space_key: Optional[str] = None
     ) -> Dict[str, Any]:
-        """Search Confluence content using MCP."""
+        """Search Confluence content using MCP with graceful fallback."""
         try:
             tools = await self.atlassian.get_confluence_tools()
 
@@ -212,18 +235,37 @@ class MCPToolManager:
                 if space_key:
                     params["space_key"] = space_key
 
-                server_params = self.atlassian.create_server_params()
-                async with stdio_client(server_params) as (read, write):
-                    await write.initialize()
-                    result = await write.call_tool(search_tool.name, params)
-                    return {"status": "success", "query": query, "results": result.content}
+                try:
+                    server_params = self.atlassian.create_server_params()
+                    async with stdio_client(server_params) as (read, write):
+                        await write.initialize()
+                        result = await write.call_tool(search_tool.name, params)
+                        return {"status": "success", "query": query, "results": result.content}
+                except Exception as search_error:
+                    self.logger.warning(f"MCP search failed, using fallback: {search_error}")
+                    return {
+                        "status": "partial_success", 
+                        "query": query, 
+                        "message": "Documentation search unavailable, using general guidance",
+                        "fallback": True
+                    }
             else:
-                self.logger.warning("searchContent tool not found")
-                return {"status": "error", "message": "Search tool not available"}
+                self.logger.info("searchContent tool not available, using fallback")
+                return {
+                    "status": "partial_success", 
+                    "query": query, 
+                    "message": "Search tool not available, providing general guidance",
+                    "fallback": True
+                }
 
         except Exception as e:
-            self.logger.error(f"Search failed: {e}")
-            return {"status": "error", "message": str(e)}
+            self.logger.warning(f"Search failed, using fallback: {e}")
+            return {
+                "status": "partial_success", 
+                "query": query, 
+                "message": "Documentation search unavailable, using general guidance",
+                "fallback": True
+            }
 
     async def get_confluence_page(self, page_id: str) -> Dict[str, Any]:
         """Retrieve specific Confluence page content."""
