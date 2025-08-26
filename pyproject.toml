@@ -19,7 +19,7 @@ dependencies = [
 ]
 
 [project.scripts]
-ai-alert = "main:cli"
+ai-alert = "interfaces.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
