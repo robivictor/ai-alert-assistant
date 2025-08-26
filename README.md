@@ -4,7 +4,7 @@ A modern, Python-based AI assistant that analyzes system alerts and provides int
 
 # System Architecture
 
-![System Architecture](system_architecture.png)
+![System Architecture](system_architecture.jpg)
 
 The AI Alert Assistant follows a modular architecture with the following key components:
 
