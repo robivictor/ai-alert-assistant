@@ -26,22 +26,25 @@ class AlertAnalysisAgent:
 
     def _setup_agent(self) -> None:
         """Set up the Strands agent with tools and configuration."""
-        # Add custom tools (Confluence tools will be added asynchronously)
+        # Add custom tools that match the prompt requirements
         custom_tools = [
             self.search_alarm_documentation,
             self.identify_event_id,
             self.get_troubleshooting_steps,
+            self.get_accessible_atlassian_resources,
+            self.search_content,
+            self.get_confluence_page,
         ]
 
         self.agent = Agent(
-            name="Alert Analysis Agent",
-            description="Analyzes system alerts and provides troubleshooting guidance based on Confluence documentation.",
+            name="Analysis Agent",
+            description="Analysis Agent supporting the Frontline Response Agent by analyzing alarms and extracting critical details.",
             model=model,
             tools=custom_tools,
             callback_handler=None,
         )
 
-        logger.info("Alert Analysis Agent initialized")
+        logger.info("Analysis Agent initialized")
 
     @tool
     def search_alarm_documentation(self, alarm_message: str) -> Dict[str, Any]:
@@ -153,6 +156,78 @@ class AlertAnalysisAgent:
         troubleshooting_steps = self._get_predefined_steps(event_id)
 
         return troubleshooting_steps
+
+    @tool
+    def get_accessible_atlassian_resources(self) -> Dict[str, Any]:
+        """
+        Discover available Confluence spaces and pages.
+
+        Returns:
+            Dict containing available Confluence resources
+        """
+        logger.info("Discovering accessible Atlassian resources")
+
+        try:
+            result = asyncio.run(self.mcp_manager.discover_confluence_resources())
+            return result
+        except Exception as e:
+            logger.warning(f"Failed to discover Atlassian resources: {e}")
+            return {
+                "status": "error",
+                "message": "Unable to discover Confluence resources",
+                "error": str(e)
+            }
+
+    @tool
+    def search_content(self, query: str, space_key: str = None) -> Dict[str, Any]:
+        """
+        Search Confluence content for pages related to the alarm.
+
+        Args:
+            query: Search query string
+            space_key: Optional Confluence space key to limit search
+
+        Returns:
+            Dict containing search results from Confluence
+        """
+        logger.info(f"Searching Confluence content for: {query}")
+
+        try:
+            result = asyncio.run(self.mcp_manager.search_confluence_content(query, space_key))
+            return result
+        except Exception as e:
+            logger.warning(f"Failed to search Confluence content: {e}")
+            return {
+                "status": "error",
+                "message": "Unable to search Confluence content",
+                "error": str(e),
+                "query": query
+            }
+
+    @tool
+    def get_confluence_page(self, page_id: str) -> Dict[str, Any]:
+        """
+        Retrieve detailed content from a specific Confluence page.
+
+        Args:
+            page_id: The ID of the Confluence page to retrieve
+
+        Returns:
+            Dict containing the page content
+        """
+        logger.info(f"Retrieving Confluence page: {page_id}")
+
+        try:
+            result = asyncio.run(self.mcp_manager.get_confluence_page(page_id))
+            return result
+        except Exception as e:
+            logger.warning(f"Failed to retrieve Confluence page: {e}")
+            return {
+                "status": "error",
+                "message": "Unable to retrieve Confluence page",
+                "error": str(e),
+                "page_id": page_id
+            }
 
     def _extract_keywords(self, alarm_message: str) -> List[str]:
         """Extract relevant keywords from alert message."""
@@ -316,33 +391,27 @@ class AlertAnalysisAgent:
             logger.error(f"Analysis failed: {e}")
             return {"alert_message": alert_message, "error": str(e), "status": "error"}
 
-    def _create_analysis_prompt(self, alert_message: str) -> str:
+    def _create_analysis_prompt(self, alarm_message: str) -> str:
         """Create the analysis prompt for the agent."""
         return f"""
-You are the Alert Analysis Agent, responsible for analyzing system alerts and providing troubleshooting guidance.
+You are the **Analysis Agent**, supporting the **Frontline Response Agent** by analyzing alarms and extracting critical details.
 
-## Your Mission
-Analyze the following system alert and provide structured, actionable recommendations based on available documentation.
-
-## Available Tools
-1. search_alarm_documentation - Search Confluence for relevant documentation
-2. identify_event_id - Map the alert to a specific event ID
-3. get_troubleshooting_steps - Get detailed troubleshooting procedures
-4. MCP Confluence tools - Access live documentation
+## Goals
+1. Gather any useful information about the alarm message.
+2. Find the closest event in the documentation to the alarm message by searching through all available Confluence documentation.
+3. Provide a clear event ID and context for the Frontline Response Agent.
 
 ## Process
-1. Use search_alarm_documentation ONCE to find relevant information (do not repeat searches)
-2. Use identify_event_id to classify the alert based on the content
-3. Use get_troubleshooting_steps to get specific procedures for the identified event ID
-4. If documentation search fails, proceed with general analysis based on the alert content
-5. Provide a comprehensive response with:
-   - Event ID classification
-   - Immediate actions to take
-   - Escalation procedures
-   - General troubleshooting guidance
+- Step 1: Use your tools to gain understanding on what's happening in the alarm message.
+- Step 2: Use getAccessibleAtlassianResources to discover available Confluence spaces and pages.
+- Step 3: Use searchContent to find relevant documentation pages related to the alarm.
+- Step 4: Use getConfluencePage to retrieve detailed content from relevant pages.
+- Step 5: Match the event ID in the documentation to the alarm message. Note that the event ID is almost never mentioned in the alarm message.
+- Step 6: Provide frontline response instructions for the Frontline Response Agent, please ignore the DBA response instructions.
+- Step 7: Share a link to the email template if found in documentation.
 
-## Alert to Analyze
-{alert_message}
+## Objective
+Search through ALL available Confluence documentation to find the event ID and useful information for this alarm message: `{alarm_message}`
 
-Please analyze this alert systematically and provide clear, actionable guidance.
+Start by discovering what Confluence resources are available, then search for content related to the alarm.
         """.strip()

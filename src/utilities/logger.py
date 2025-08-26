@@ -42,11 +42,11 @@ def setup_logging(level: str = None) -> None:
     Args:
         level: Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
     """
-    # Get log level from environment or parameter
-    log_level = level or os.getenv("LOG_LEVEL", "INFO").upper()
+    # Get log level from environment or parameter - default to WARNING to reduce logs
+    log_level = level or os.getenv("LOG_LEVEL", "WARNING").upper()
 
     # Convert string level to logging constant
-    numeric_level = getattr(logging, log_level, logging.INFO)
+    numeric_level = getattr(logging, log_level, logging.WARNING)
 
     # Configure root logger
     root_logger = logging.getLogger()
@@ -69,10 +69,6 @@ def setup_logging(level: str = None) -> None:
 
     # Add handler to root logger
     root_logger.addHandler(console_handler)
-
-    # Log initial message
-    logger = logging.getLogger(__name__)
-    logger.info(f"Logging configured at {log_level} level")
 
 
 def get_logger(name: str) -> logging.Logger:
