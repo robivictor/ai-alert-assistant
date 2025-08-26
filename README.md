@@ -2,6 +2,17 @@
 
 A modern, Python-based AI assistant that analyzes system alerts and provides intelligent responses based on Confluence documentation.
 
+# System Architecture
+
+![System Architecture](system_architecture.png)
+
+The AI Alert Assistant follows a modular architecture with the following key components:
+
+- **AI Agents**: Handle alert analysis and response generation
+- **MCP Integration**: Provides seamless Atlassian Confluence connectivity
+- **Tools Layer**: Manages external integrations and data sources
+- **Utilities**: Core services like logging and configuration management
+
 ## Quick Start
 
 ### 1. Clone and Setup
