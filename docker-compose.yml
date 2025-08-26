@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  atlassian-mcp:
+    image: ghcr.io/sooperset/mcp-atlassian:latest
+    container_name: atlassian-mcp-server
+    ports:
+      - "9000:9000"
+    environment:
+
+      - CONFLUENCE_URL=${CONFLUENCE_URL}
+      - CONFLUENCE_USERNAME=${CONFLUENCE_USERNAME}
+      - CONFLUENCE_API_TOKEN=${CONFLUENCE_API_TOKEN}
+
+      # Enable Confluence tools only
+      - ENABLED_TOOLS=${ENABLED_TOOLS:-confluence_search,confluence_get_comments,confluence_get_labels,confluence_get_page,confluence_get_page_children}
+
+
+    # Optional: Run with specific command arguments
+    command: ["--transport", "streamable-http", "--port", "9000"]
+
+    restart: unless-stopped
+
+    # Optional: Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

@@ -45,22 +45,22 @@ class AIAlertAssistant:
             raise
 
     async def authenticate(self) -> bool:
-        """Authenticate with Atlassian services."""
+        """Validate MCP client configuration."""
         styled_log(
-            "🔐 AUTHENTICATION", "Starting Atlassian authentication...", "yellow"
+            "🔐 CONFIGURATION", "Validating MCP client configuration...", "yellow"
         )
 
         try:
-            success = await self.atlassian_client.authenticate()
+            success = await self.atlassian_client.validate_configuration()
             if success:
-                log_success("Atlassian authentication successful")
+                log_success("MCP client configuration valid")
                 return True
             else:
-                log_error("Atlassian authentication failed")
+                log_error("MCP client configuration failed")
                 return False
 
         except Exception as e:
-            log_error(f"Authentication error: {e}")
+            log_error(f"Configuration error: {e}")
             return False
 
     async def analyze_alert(self, alert_message: str) -> dict:
